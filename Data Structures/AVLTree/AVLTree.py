@@ -184,7 +184,31 @@ class AVLTree(object):
 	@returns: node corresponding to key.
 	"""
 	def search(self, key):
-		return None
+
+		"""
+		Recursive helper method for searching a node in the AVL tree.
+
+		@type node: AVLNode
+		@param node: the current node during the recursive search
+		@type key: int
+		@param key: the key to be searched
+		@rtype: AVLNode
+		@returns: the node corresponding to the key, or None if the key is not found
+		"""
+		def search_env(node, key):
+			"""" Key is not found """
+			if node.key is None:
+				return
+			"""" Key is found """
+			if key == node.key:
+				return node
+			"""" Key is in the left subtree """
+			if key < node.key:
+				return search_env(node.left, key)
+			"""" Key is in the right subtree """
+			return search_env(node.right, key)
+
+		return search_env(self.root, key)
 
 
 	"""inserts val at position i in the dictionary
@@ -206,7 +230,7 @@ class AVLTree(object):
 		else:
 			self.BST_insert(self.root, newNode)
 		newNode.set_height(0)
-		newNode.set_size(0)
+		newNode.set_size(1)
 		newNode.right = AVLNode(None, None)
 		newNode.left = AVLNode(None, None)
 
@@ -229,74 +253,20 @@ class AVLTree(object):
 
 		"""" we continue to go up to update fields """
 		while y != None:
-			update_fields(y)
+			self.update_fields(y)
 			y = y.parent
 
 		return total_rotations
 
 
-	def rotate(self, node, bf):
-		"""" we check who is the criminal """
-		if bf == -2:
-			"""" what is the BF of the right son? """
-			bf_right = node.right.left.height - node.right.right.height
-			if bf_right == -1:
-				left_rotate(node)
-				return 1
-			else:
-				right_rotate(node.right)
-				left_rotate(node)
-				return 2
-		else:
-			"""" what is the BF of the left son? """
-			bf_left = node.left.left.height - node.left.right.height
-			if bf_left == -1:
-				left_rotate(node.left)
-				right_rotate(node)
-				return 2
-			else:
-				right_rotate(node)
-				return 1
+	"""
+	Inserts a new node into the AVL tree following the rules of a binary search tree.
 
-
-	def left_rotate(self, node):
-		tmp = node.right.left
-		node.right.left = node
-		node.right.parent = node.parent
-		"""" we check if the node was a left child or a right one to its parent """
-		if node.parent.right.key == node.key:
-			node.parent.right = node.right
-		else:
-			node.parent.left = node.right
-		node.parent = node.right
-		node.right = tmp
-		tmp.parent = node
-		"""" update the size and height fields """
-		update_fields(node)
-
-
-	def right_rotate(self, node):
-		tmp = node.left.right
-		node.left.right = node
-		node.left.parent = node.parent
-		"""" we check if the node was a left child or a right one to its parent """
-		if node.parent.right.key == node.key:
-			node.parent.right = node.left
-		else:
-			node.parent.left = node.left
-		node.parent = node.left
-		node.left = tmp
-		tmp.parent = node
-		"""" update the size and height fields """
-		update_fields(node)
-
-
-	"""" update the size and height fields """
-	def update_fields(self, node):
-		node.set_size(node.left.get_size() + node.right.get_size() + 1)
-		node.set_height(max(node.left.height, node.right.height) + 1)
-
-
+	@type node: AVLNode
+	@param node: the current node during the insertion process
+	@type newNode: AVLNode
+	@param newNode: the new node to be inserted
+	"""
 	def BST_insert(self, node, newNode):
 		if newNode.key < node.key:
 			if node.left.key is None:
@@ -310,6 +280,101 @@ class AVLTree(object):
 				newNode.parent = node
 			else:
 				self.BST_insert(node.right, newNode)
+
+
+	"""
+	Performs AVL rotations to rebalance the tree.
+
+	@type node: AVLNode
+	@param node: the node at which rotations are performed
+	@type bf: int
+	@param bf: the balance factor of the node
+	@rtype: int
+	@returns: the number of rotations performed during AVL rebalancing
+	"""
+	def rotate(self, node, bf):
+		"""" we check who is the criminal """
+		if bf == -2:
+			"""" what is the BF of the right son? """
+			bf_right = node.right.left.height - node.right.right.height
+			if bf_right == -1:
+				self.left_rotate(node)
+				return 1
+			else:
+				self.right_rotate(node.right)
+				self.left_rotate(node)
+				return 2
+		else:
+			"""" what is the BF of the left son? """
+			bf_left = node.left.left.height - node.left.right.height
+			if bf_left == -1:
+				self.left_rotate(node.left)
+				self.right_rotate(node)
+				return 2
+			else:
+				self.right_rotate(node)
+				return 1
+
+
+	"""
+	Performs a left rotation on the AVL tree.
+
+	@type node: AVLNode
+	@param node: the node around which the rotation is performed
+	"""
+	def left_rotate(self, node):
+		tmp = node.right.left
+		node.right.left = node
+		node.right.parent = node.parent
+		"""" we check if the node was a left child or a right one to its parent """
+		if node.parent is not None:
+			if node.parent.right.key == node.key:
+				node.parent.right = node.right
+			else:
+				node.parent.left = node.right
+		else:
+			self.root = node.right
+		node.parent = node.right
+		node.right = tmp
+		tmp.parent = node
+		"""" update the size and height fields """
+		self.update_fields(node)
+
+
+	"""
+	Performs a right rotation on the AVL tree.
+
+	@type node: AVLNode
+	@param node: the node around which the rotation is performed
+	"""
+	def right_rotate(self, node):
+		tmp = node.left.right
+		node.left.right = node
+		node.left.parent = node.parent
+		"""" we check if the node was a left child or a right one to its parent """
+		if node.parent is not None:
+			if node.parent.right.key == node.key:
+				node.parent.right = node.left
+			else:
+				node.parent.left = node.left
+		else:
+			self.root = node.left
+		node.parent = node.left
+		node.left = tmp
+		tmp.parent = node
+		"""" update the size and height fields """
+		self.update_fields(node)
+
+
+	"""
+	Updates the size and height fields of a given node.
+
+	@type node: AVLNode
+	@param node: the node for which size and height fields are updated
+	"""
+	def update_fields(self, node):
+		node.set_size(node.left.get_size() + node.right.get_size() + 1)
+		node.set_height(max(node.left.height, node.right.height) + 1)
 
 
 	"""deletes node from the dictionary
@@ -329,7 +394,28 @@ class AVLTree(object):
 	@returns: a sorted list according to key of touples (key, value) representing the data structure
 	"""
 	def avl_to_array(self):
-		return None
+
+		"""
+		Recursively traverses the AVL tree and populates an array with tuples (key, value).
+
+		@type node: AVLNode
+		@param node: the current node in the AVL tree
+		@type array: list
+		@param array: the list to store tuples (key, value)
+		"""
+		def avl_to_array(node, array):
+			"""" The tree is done """
+			if node is None or node.key is None:
+				return
+			"""" Go to the left subtree """
+			avl_to_array(node.left, array)
+			"""" Insert the current node """
+			array.append((node.key, node.value))
+			"""" Go to the right subtree """
+			avl_to_array(node.right, array)
+		array = []
+		avl_to_array(self.root, array)
+		return array
 
 
 	"""returns the number of items in dictionary 
@@ -405,13 +491,88 @@ class AVLTree(object):
 		return self.root
 
 
-tree1 = AVLTree()
-tree1.insert(3,3)
-print(tree1)
-tree1.insert(1,1)
-print(tree1)
-tree1.insert(4,4)
-print(tree1)
-tree1.insert(2,2)
-print(tree1)
+	"""
+	Prints a visual representation of the AVL tree, including virtual leaves.
+	Credits: https://github.com/TotallyBot
+	
+	@type root: AVLNode
+	@param root: the root of the AVL tree to be displayed
+	"""
+	def display(self, root):
+		lines, *_ = self._display_aux(root)
+		for line in lines:
+			print(line)
 
+
+	"""
+	Internal helper method for displaying the AVL tree recursively.
+	Credits: https://github.com/TotallyBot
+	
+	@type node: AVLNode
+	@param node: the current node during the recursive display
+	@rtype: tuple
+	@returns: a tuple containing a list of strings representing each line of the display,
+	          width, height, and horizontal coordinate of the root
+	"""
+	def _display_aux(self, node):
+		"""Returns list of strings, width, height, and horizontal coordinate of the root."""
+		# No child.
+		if not node.get_right() and not node.get_left():
+			if not node.is_real_node():
+				line = '%s' % "V"
+			else:
+				line = '%s' % node.get_key()
+
+			width = len(line)
+			height = 1
+			middle = width // 2
+			return [line], width, height, middle
+
+		# Only left child.
+		if not node.get_right() and node.get_left():
+			lines, n, p, x = self._display_aux(node.get_left())
+			s = '%s' % node.get_key()
+			u = len(s)
+			first_line = (x + 1) * ' ' + (n - x - 1) * '_' + s
+			second_line = x * ' ' + '/' + (n - x - 1 + u) * ' '
+			shifted_lines = [line + u * ' ' for line in lines]
+			return [first_line, second_line] + shifted_lines, n + u, p + 2, n + u // 2
+
+		# Only right child.
+		if not node.get_left() and node.get_right():
+			lines, n, p, x = self._display_aux(node.get_right())
+			s = '%s' % node.get_key()
+			u = len(s)
+			first_line = s + x * '_' + (n - x) * ' '
+			second_line = (u + x) * ' ' + '\\' + (n - x - 1) * ' '
+			shifted_lines = [u * ' ' + line for line in lines]
+			return [first_line, second_line] + shifted_lines, n + u, p + 2, u // 2
+
+		# Two children.
+		left, n, p, x = self._display_aux(node.get_left())
+		right, m, q, y = self._display_aux(node.get_right())
+		s = '%s' % node.get_key()
+		u = len(s)
+		first_line = (x + 1) * ' ' + (n - x - 1) * '_' + s + y * '_' + (m - y) * ' '
+		second_line = x * ' ' + '/' + (n - x - 1 + u + y) * ' ' + '\\' + (m - y - 1) * ' '
+		if p < q:
+			left += [n * ' '] * (q - p)
+		elif q < p:
+			right += [m * ' '] * (p - q)
+		zipped_lines = zip(left, right)
+		lines = [first_line, second_line] + [a + u * ' ' + b for a, b in zipped_lines]
+		return lines, n + m + u, max(p, q) + 2, n + u // 2
+
+
+tree1 = AVLTree()
+tree1.insert(1,1)
+tree1.insert(2,2)
+tree1.insert(4,4)
+tree1.insert(3,3)
+tree1.display(tree1.root)
+print(tree1.avl_to_array())
+x = tree1.search(1)
+i = tree1.search(2)
+u = tree1.search(3)
+k = tree1.search(4)
+y = tree1.search(5)
