@@ -177,7 +177,8 @@ class AVLTree(object):
 
 
 	"""searches for a node in the dictionary corresponding to the key
-
+	Time Complexity: O(log(n))
+	
 	@type key: int
 	@param key: a key to be searched
 	@rtype: AVLNode
@@ -212,7 +213,8 @@ class AVLTree(object):
 
 
 	"""inserts val at position i in the dictionary
-
+	Time Complexity: O(log(n))
+	
 	@type key: int
 	@pre: key currently does not appear in the dictionary
 	@param key: key of item that is to be inserted to self
@@ -261,7 +263,8 @@ class AVLTree(object):
 
 	"""
 	Inserts a new node into the AVL tree following the rules of a binary search tree.
-
+	Time Complexity: O(log(n))
+	
 	@type node: AVLNode
 	@param node: the current node during the insertion process
 	@type newNode: AVLNode
@@ -284,7 +287,8 @@ class AVLTree(object):
 
 	"""
 	Performs AVL rotations to rebalance the tree.
-
+	Time Complexity: O(1)
+	
 	@type node: AVLNode
 	@param node: the node at which rotations are performed
 	@type bf: int
@@ -297,13 +301,13 @@ class AVLTree(object):
 		if bf == -2:
 			"""" what is the BF of the right son? """
 			bf_right = node.right.left.height - node.right.right.height
-			if bf_right == -1:
-				self.left_rotate(node)
-				return 1
-			else:
+			if bf_right == 1:
 				self.right_rotate(node.right)
 				self.left_rotate(node)
 				return 2
+			else:
+				self.left_rotate(node)
+				return 1
 		else:
 			"""" what is the BF of the left son? """
 			bf_left = node.left.left.height - node.left.right.height
@@ -318,7 +322,8 @@ class AVLTree(object):
 
 	"""
 	Performs a left rotation on the AVL tree.
-
+	Time Complexity: O(1)
+		
 	@type node: AVLNode
 	@param node: the node around which the rotation is performed
 	"""
@@ -343,7 +348,8 @@ class AVLTree(object):
 
 	"""
 	Performs a right rotation on the AVL tree.
-
+	Time Complexity: O(1)
+	
 	@type node: AVLNode
 	@param node: the node around which the rotation is performed
 	"""
@@ -378,18 +384,143 @@ class AVLTree(object):
 
 
 	"""deletes node from the dictionary
-
+	Time Complexity: O(log(n))
+	
 	@type node: AVLNode
 	@pre: node is a real pointer to a node in self
 	@rtype: int
 	@returns: the number of rebalancing operation due to AVL rebalancing
 	"""
 	def delete(self, node):
-		return -1
+		total_rotations = 0
+		y = node.parent
+
+		"""" First, we delete the node as we do in BST """
+		self.BST_delete(node)
+
+		"""" Then we go up and look for criminals while fixing the size and height of each node """
+		while y != None:
+			bf = y.left.height - y.right.height
+			y.set_size(y.right.get_size() + y.left.get_size() + 1)
+			if abs(bf) < 2:
+				if y.height == max(y.left.height, y.right.height) + 1:
+					y = y.parent
+					break
+				else:
+					y.set_height(max(y.right.get_height(), y.left.get_height()) + 1)
+					y = y.parent
+			else:
+				total_rotations += self.rotate(y, bf)
+				y = y.parent
+
+		"""" we continue to go up to update fields """
+		while y != None:
+			self.update_fields(y)
+			y = y.parent
+
+		return total_rotations
+
+
+	def BST_delete(self, node):
+
+		"""" Case 1: node is a leaf """
+		if node.key is None and node.key is None:
+			virtual_node = AVLNode(None, None)
+
+			"""" The deleted node is the root """
+			if node.parent is None:
+				self.root = virtual_node
+			else:
+				if node.parent.right.key == node.key:
+
+					"""" The deleted node is a right child """
+					node.parent.right = virtual_node
+				else:
+
+					"""" The deleted node is a left child """
+					node.parent.left = virtual_node
+
+			"""" Case 2: node has two children """
+		elif node.key is not None and node.key is not None:
+
+			"""" Let y be the successor of node """
+			y = self.successor(node)
+
+			"""" Remove y from the tree """
+			y.parent.left = y.right
+			y.right.parent = y.parent
+
+			"""" Replace node by y """
+			y.parent = node.parent
+			y.right = node.right
+			y.left = node.left
+
+			"""" The deleted node is the root """
+			if node.parent is None:
+				self.root = y
+			else:
+				if node.parent.right.key == node.key:
+
+					"""" The deleted node is a right child """
+					node.parent.right = y
+				else:
+
+					"""" The deleted node is a left child """
+					node.parent.left = y
+			node.right.parent = y
+			node.left.parent = y
+			node.left = None
+			node.parent = None
+			node.right = None
+
+			"""" Case 3: node has only one child """
+		else:
+			if node.right.key is not None:
+				child = node.right
+				node.right = None
+			else:
+				child = node.left
+				node.left = None
+
+			"""" The deleted node is the root """
+			if node.parent is None:
+				self.root = child
+				child.parent = None
+			else:
+				if node.parent.right.key == node.key:
+
+					"""" The deleted node is a right child """
+					node.parent.right = child
+				else:
+
+					"""" The deleted node is a left child """
+					node.parent.left = child
+
+			child.parent = node.parent
+			node.parent = None
+
+
+	def successor(self, node):
+		y = node
+		if y.right.key is None:
+
+			"""" We go up until the first turn right """
+			while y.parent is not None and y.parent.right.key == y.key:
+				y = y.parent
+			return y
+		else:
+
+			"""" Node has a right child, so we return the minimal node in the right subtree """
+			y = node.right
+			while y.key is not None:
+				y = y.left
+
+		return y.parent
 
 
 	"""returns an array representing dictionary 
-
+	Time Complexity: O(n)
+	
 	@rtype: list
 	@returns: a sorted list according to key of touples (key, value) representing the data structure
 	"""
@@ -419,7 +550,8 @@ class AVLTree(object):
 
 
 	"""returns the number of items in dictionary 
-
+	Time Complexity: O(1)
+	
 	@rtype: int
 	@returns: the number of items in dictionary 
 	"""
@@ -459,7 +591,8 @@ class AVLTree(object):
 
 
 	"""compute the rank of node in the self
-
+	Time Complexity: O(log(n))
+	
 	@type node: AVLNode
 	@pre: node is in self
 	@param node: a node in the dictionary which we want to compute its rank
@@ -471,7 +604,8 @@ class AVLTree(object):
 
 
 	"""finds the i'th smallest item (according to keys) in self
-
+	Time Complexity: O(log(n))
+	
 	@type i: int
 	@pre: 1 <= i <= self.size()
 	@param i: the rank to be selected in self
@@ -483,7 +617,8 @@ class AVLTree(object):
 
 
 	"""returns the root of the tree representing the dictionary
-
+	Time Complexity: O(1)
+	
 	@rtype: AVLNode
 	@returns: the root, None if the dictionary is empty
 	"""
