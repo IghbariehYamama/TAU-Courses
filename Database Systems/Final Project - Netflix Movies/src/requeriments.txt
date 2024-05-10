@@ -1,0 +1,2 @@
+Installed libraries:
+mysql-connector-python == 8.3.0: pip install mysql-connector-python
