@@ -1,0 +1,135 @@
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
+#include <math.h>
+#include <stdlib.h>
+
+static PyObject* fit(PyObject* self, PyObject* args) {
+    PyObject *pyCentroids, *pyDataPoints;
+    int K, iter;
+    double eps;
+
+    if (!PyArg_ParseTuple(args, "OOiid", &pyCentroids, &pyDataPoints, &K, &iter, &eps)) {
+        printf("An Error Has Occurred");
+        return NULL;
+    }
+
+    if (!PyList_Check(pyCentroids) || !PyList_Check(pyDataPoints)) {
+        printf("An Error Has Occurred");
+        return NULL;
+    }
+
+    int N = PyList_Size(pyDataPoints);
+    int dim = PyList_Size(PyList_GetItem(pyDataPoints, 0));
+
+    double **centroids = (double **)malloc(K * sizeof(double *));
+    double **dataPoints = (double **)malloc(N * sizeof(double *));
+    double **newCentroids = (double **)malloc(K * sizeof(double *));
+    int *clusterSizes = (int *)malloc(K * sizeof(int));
+
+    if (centroids == NULL || dataPoints == NULL || newCentroids == NULL || clusterSizes == NULL) {
+        printf("An Error Has Occurred");
+        return NULL;
+    }
+
+    for (int i = 0; i < K; i++) {
+        centroids[i] = (double *)malloc(dim * sizeof(double));
+        newCentroids[i] = (double *)calloc(dim, sizeof(double)); 
+        PyObject *centroid = PyList_GetItem(pyCentroids, i);
+        for (int j = 0; j < dim; j++) {
+            centroids[i][j] = PyFloat_AsDouble(PyList_GetItem(centroid, j));
+        }
+    }
+
+    for (int i = 0; i < N; i++) {
+        dataPoints[i] = (double *)malloc(dim * sizeof(double));
+        PyObject *dataPoint = PyList_GetItem(pyDataPoints, i);
+        for (int j = 0; j < dim; j++) {
+            dataPoints[i][j] = PyFloat_AsDouble(PyList_GetItem(dataPoint, j));
+        }
+    }
+
+    int converged = 0;
+    for (int iter_count = 0; iter_count < iter && !converged; iter_count++) {
+        converged = 1;
+        memset(clusterSizes, 0, K * sizeof(int));
+
+        for (int i = 0; i < K; i++) {
+            memset(newCentroids[i], 0, dim * sizeof(double));
+        }
+
+        for (int i = 0; i < N; i++) {
+            int closestCentroid = 0;
+            double minDist = INFINITY;
+
+            for (int j = 0; j < K; j++) {
+                double dist = 0.0;
+                for (int d = 0; d < dim; d++) {
+                    dist += pow(dataPoints[i][d] - centroids[j][d], 2);
+                }
+
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestCentroid = j;
+                }
+            }
+
+            for (int d = 0; d < dim; d++) {
+                newCentroids[closestCentroid][d] += dataPoints[i][d];
+            }
+            clusterSizes[closestCentroid]++;
+        }
+
+        for (int j = 0; j < K; j++) {
+            if (clusterSizes[j] > 0) {
+                for (int d = 0; d < dim; d++) {
+                    double new_value = newCentroids[j][d] / clusterSizes[j];
+                    if (fabs(new_value - centroids[j][d]) > eps) {
+                        converged = 0;
+                    }
+                    centroids[j][d] = new_value;
+                }
+            }
+        }
+    }
+
+    PyObject *result = PyList_New(K);
+    for (int i = 0; i < K; i++) {
+        PyObject *centroid = PyList_New(dim);
+        for (int j = 0; j < dim; j++) {
+            PyList_SET_ITEM(centroid, j, PyFloat_FromDouble(centroids[i][j]));
+        }
+        PyList_SET_ITEM(result, i, centroid);
+    }
+
+    for (int i = 0; i < K; i++) {
+        free(centroids[i]);
+        free(newCentroids[i]);
+    }
+    free(centroids);
+    free(newCentroids);
+    free(clusterSizes);
+
+    for (int i = 0; i < N; i++) {
+        free(dataPoints[i]);
+    }
+    free(dataPoints);
+    return result;
+}
+
+
+static PyMethodDef MyKmeansMethods[] = {
+    {"fit", fit, METH_VARARGS, "Run K-means algorithm with given initial centroids and data points"},
+    {NULL, NULL, 0, NULL}
+};
+
+static struct PyModuleDef mykmeansspmodule = {
+    PyModuleDef_HEAD_INIT,
+    "mykmeanssp",
+    NULL,
+    -1,
+    MyKmeansMethods
+};
+
+PyMODINIT_FUNC PyInit_mykmeanssp(void) {
+    return PyModule_Create(&mykmeansspmodule);
+}
