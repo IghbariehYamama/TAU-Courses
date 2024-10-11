@@ -1,0 +1,32 @@
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_iris
+from sklearn.cluster import KMeans
+import numpy as np
+
+iris = load_iris()
+X = iris.data
+k_values = range(1, 11)
+inertias = []
+
+for k in k_values:
+    kmeans = KMeans(n_clusters=k, init='k-means++', random_state=0)
+    kmeans.fit(X)
+    clusters = kmeans.predict(X)
+    centers = kmeans.cluster_centers_
+    inertia = 0
+
+    for i, center in enumerate(centers):
+        cluster_points = X[clusters == i]
+        inertia += np.sum(np.linalg.norm(cluster_points - center, axis=1) ** 2)
+
+    inertias.append(inertia)
+
+plt.figure(figsize=(8, 6))
+plt.plot(k_values, inertias, 'bo-', markersize=8)
+plt.xlabel('K')
+plt.ylabel('Average Dispersion')
+plt.title('Elbow Method For Selection OF Optimal K Clusters')
+plt.xticks(k_values)
+elbow_point = 2
+plt.annotate('Elbow Point', xy=(elbow_point, inertias[elbow_point - 1]), xytext=(elbow_point + 1, inertias[elbow_point - 1] + 200), arrowprops=dict(facecolor='black', shrink=0.05))
+plt.savefig('elbow.png')
